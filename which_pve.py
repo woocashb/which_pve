@@ -1,32 +1,27 @@
 #!/usr/bin/env python
 
-import pve_credentials
-import proxmoxer
-import argparse
+import fabric
 import sys
-
-proxmox_api = proxmoxer.ProxmoxAPI(pve_credentials.pve_host, user=pve_credentials.pve_user, backend="ssh_paramiko")
-
-# lists all vms in cluster
+import argparse
 
 pve_hosts = [ "192.168.2.125", "192.168.2.126", "192.168.7.21", "192.168.7.22", "192.168.253.184", "192.168.7.17", "10.22.127.11", "10.22.127.12", "10.22.127.13", "192.168.7.24"]
-
-parser = argparse.ArgumentParser(description="Get hypervisor running given VM as argument")
-
-parser.add_argument('vm_name', help="virtual machine name")
-
+#pve_hosts = ['10.12.20.11', '10.12.20.13']
+parser = argparse.ArgumentParser(description='Get hypervisor where given virtual machine resides')
+parser.add_argument('vm_name', help='virtual machine name')
 args = parser.parse_args()
-vm_found = False
+
+VM_SEARCH_CMD = "qm list | awk '{print $2}' | grep -- " + args.vm_name
 
 for pve_host in pve_hosts:
-    proxmox_api = proxmoxer.ProxmoxAPI(pve_host, user="root", backend="ssh_paramiko")
-    for pve_node in proxmox_api.nodes.get():
-        for vm in proxmox_api.nodes(pve_node['node']).qemu.get():
-            if vm['name'] == args.vm_name:
-                print("{} -> https://{}:8006".format(pve_node['node'], pve_host))
-                vm_found = True
+    with fabric.Connection(pve_host, user="root") as pve_host_connection:
+        try:
+            pve_host_vm_search_result = pve_host_connection.run(VM_SEARCH_CMD, hide=True)
+            pve_host_hostname = pve_host_connection.run('hostname', hide=True)
+            if pve_host_vm_search_result.return_code == 0 and pve_host_hostname.return_code == 0:
+                print(f"{pve_host_hostname.stdout.rstrip()} -> https://{pve_host}:8006")
                 sys.exit(0)
-
-
-if not vm_found:
-    print('No such VM found in pve list')
+        except Exception:
+            continue
+else:
+    print("No such vm name found in known PVE hosts!")
+    sys.exit(1)
