@@ -4,8 +4,7 @@ import fabric
 import sys
 import argparse
 
-pve_hosts = [ "192.168.2.125", "192.168.2.126", "192.168.7.21", "192.168.7.22", "192.168.253.184", "192.168.7.17", "10.22.127.11", "10.22.127.12", "10.22.127.13", "192.168.7.24"]
-#pve_hosts = ['10.12.20.11', '10.12.20.13']
+pve_hosts = ['10.12.20.11', '10.12.20.13']
 parser = argparse.ArgumentParser(description='Get hypervisor where given virtual machine resides')
 parser.add_argument('vm_name', help='virtual machine name')
 args = parser.parse_args()
